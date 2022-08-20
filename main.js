@@ -1,454 +1,280 @@
-import { xpRange } from '../lib/levelling.js'
-const { levelling } = '../lib/levelling.js'
-import PhoneNumber from 'awesome-phonenumber'
-import { promises } from 'fs'
-import { join } from 'path'
-let handler = async (m, { conn, usedPrefix, usedPrefix: _p, __dirname, text }) => {
-try {
-let vn = './media/menu.mp3'
-let pp = './media/menus/Menuvid1.mp4'
-let _package = JSON.parse(await promises.readFile(join(__dirname, '../package.json')).catch(_ => ({}))) || {}
-let { exp, limit, level, role } = global.db.data.users[m.sender]
-let { min, xp, max } = xpRange(level, global.multiplier)
-let name = await conn.getName(m.sender)
-let d = new Date(new Date + 3600000)
-let locale = 'es'
-let weton = ['Pahing', 'Pon', 'Wage', 'Kliwon', 'Legi'][Math.floor(d / 84600000) % 5]
-let week = d.toLocaleDateString(locale, { weekday: 'long' })
-let date = d.toLocaleDateString(locale, {
-day: 'numeric',
-month: 'long',
-year: 'numeric'
-})
-let dateIslamic = Intl.DateTimeFormat(locale + '-TN-u-ca-islamic', {
-day: 'numeric',
-month: 'long',
-year: 'numeric'
-}).format(d)
-let time = d.toLocaleTimeString(locale, {
-hour: 'numeric',
-minute: 'numeric',
-second: 'numeric'
-})
-let _uptime = process.uptime() * 1000
-let _muptime
-if (process.send) {
-process.send('uptime')
-_muptime = await new Promise(resolve => {
-process.once('message', resolve)
-setTimeout(resolve, 1000)
-}) * 1000
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+import './config.js';
+
+import { createRequire } from "module"; // Bring in the ability to create the 'require' method 
+import path, { join } from 'path'
+import { fileURLToPath, pathToFileURL } from 'url'
+import { platform } from 'process'
+global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') { return rmPrefix ? /file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL : pathToFileURL(pathURL).toString() }; global.__dirname = function dirname(pathURL) { return path.dirname(global.__filename(pathURL, true)) }; global.__require = function require(dir = import.meta.url) { return createRequire(dir) }
+
+import * as ws from 'ws';
+import {
+  readdirSync,
+  statSync,
+  unlinkSync,
+  existsSync,
+  readFileSync,
+  watch
+} from 'fs';
+import yargs from 'yargs';
+import { spawn } from 'child_process';
+import lodash from 'lodash';
+import syntaxerror from 'syntax-error';
+import { tmpdir } from 'os';
+import { format } from 'util';
+import { makeWASocket, protoType, serialize } from './lib/simple.js';
+import { Low, JSONFile } from 'lowdb';
+// import pino from 'pino';
+import {
+  mongoDB,
+  mongoDBV2
+} from './lib/mongoDB.js';
+import store from './lib/store.js'
+
+const {
+  DisconnectReason
+} = await import('@adiwajshing/baileys')
+
+const { CONNECTING } = ws
+const { chain } = lodash
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
+
+protoType()
+serialize()
+
+global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({ ...query, ...(apikeyqueryname ? { [apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name] } : {}) })) : '')
+// global.Fn = function functionCallBack(fn, ...args) { return fn.call(global.conn, ...args) }
+global.timestamp = {
+  start: new Date
 }
-let muptime = clockString(_muptime)
-let uptime = clockString(_uptime)
-let totalreg = Object.keys(global.db.data.users).length
-let rtotalreg = Object.values(global.db.data.users).filter(user => user.registered == true).length
-let replace = {
-'%': '%',
-p: _p, uptime, muptime,
-me: conn.getName(conn.user.jid),
-npmname: _package.name,
-npmdesc: _package.description,
-version: _package.version,
-exp: exp - min,
-maxexp: xp,
-totalexp: exp,
-xp4levelup: max - exp,
-github: _package.homepage ? _package.homepage.url || _package.homepage : '[unknown github url]',
-level, limit, name, weton, week, date, dateIslamic, time, totalreg, rtotalreg, role,
-readmore: readMore
+
+const __dirname = global.__dirname(import.meta.url)
+
+global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
+global.prefix = new RegExp('^[' + (opts['prefix'] || 'xzXZ/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-HhhHBb.*aA').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']')
+
+// global.opts['db'] = process.env['db']
+
+global.db = new Low(
+  /https?:\/\//.test(opts['db'] || '') ?
+    new cloudDBAdapter(opts['db']) : /mongodb(\+srv)?:\/\//i.test(opts['db']) ?
+      (opts['mongodbv2'] ? new mongoDBV2(opts['db']) : new mongoDB(opts['db'])) :
+      new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`)
+)
+
+
+global.DATABASE = global.db // Backwards Compatibility
+global.loadDatabase = async function loadDatabase() {
+  if (global.db.READ) return new Promise((resolve) => setInterval(async function () {
+    if (!global.db.READ) {
+      clearInterval(this)
+      resolve(global.db.data == null ? global.loadDatabase() : global.db.data)
+    }
+  }, 1 * 1000))
+  if (global.db.data !== null) return
+  global.db.READ = true
+  await global.db.read().catch(console.error)
+  global.db.READ = null
+  global.db.data = {
+    users: {},
+    chats: {},
+    stats: {},
+    msgs: {},
+    sticker: {},
+    settings: {},
+    ...(global.db.data || {})
+  }
+  global.db.chain = chain(global.db.data)
 }
-text = text.replace(new RegExp(`%(${Object.keys(replace).sort((a, b) => b.length - a.length).join`|`})`, 'g'), (_, name) => '' + replace[name])
-//let user = global.db.data.users[m.sender]
-//user.registered = false
-    
+loadDatabase()
 
-let str = `
-*𝙷𝙾𝙻𝙰 ✨${name}✨, 𝙰𝚀𝚄𝙸 𝙴𝚂𝚃𝙰 𝙴𝙻 𝙼𝙴𝙽𝚄 𝙲𝙾𝙼𝙿𝙻𝙴𝚃𝙾*
+global.authFile = `${opts._[0] || 'session'}.data.json`
+const { state, saveState } = store.useSingleFileAuthState(global.authFile)
 
-*📅 𝙵𝙴𝙲𝙷𝙰: ${week}, ${date}*
+const connectionOptions = {
+  printQRInTerminal: true,
+  auth: state,
+  // logger: pino({ level: 'trace' })
+}
 
-*📊 𝚄𝚂𝚄𝙰𝚁𝙸𝙾𝚂: ${rtotalreg}*
+global.conn = makeWASocket(connectionOptions)
+conn.isInit = false
 
-*<𝕀ℕ𝔽𝕆ℝ𝕄𝔸ℂ𝕀𝕆ℕ 𝔻𝔼𝕃 𝔹𝕆𝕋/>*
+if (!opts['test']) {
+  setInterval(async () => {
+    if (global.db.data) await global.db.write().catch(console.error)
+    if (opts['autocleartmp']) try {
+      clearTmp()
 
-${usedPrefix}grupos_
-${usedPrefix}cuentasgatabot_
-${usedPrefix}estado_
-${usedPrefix}infobot_
-${usedPrefix}donar_
-${usedPrefix}listagrupos_
-${usedPrefix}velocidad_
-${usedPrefix}owner_
-Bot_ (𝑢𝑠𝑜 𝑠𝑖𝑛 𝑝𝑟𝑒𝑓𝑖𝑗𝑜)
+    } catch (e) { console.error(e) }
+  }, 60 * 1000)
+}
+if (opts['server']) (await import('./server.js')).default(global.conn, PORT)
 
-*<𝕌ℕ𝔼 𝕌ℕ 𝔹𝕆𝕋 𝔸 𝕋𝕌 𝔾ℝ𝕌ℙ𝕆/>*
 
-${usedPrefix}join *<enlace / link / url>*_
+function clearTmp() {
+  const tmp = [tmpdir(), join(__dirname, './tmp')]
+  const filename = []
+  tmp.forEach(dirname => readdirSync(dirname).forEach(file => filename.push(join(dirname, file))))
+  return filename.map(file => {
+    const stats = statSync(file)
+    if (stats.isFile() && (Date.now() - stats.mtimeMs >= 1000 * 60 * 3)) return unlinkSync(file) // 3 minutes
+    return false
+  })
+}
 
-*<𝕁𝕌𝔼𝔾𝕆𝕊/>*
+async function connectionUpdate(update) {
+  const { connection, lastDisconnect, isNewLogin } = update
+  if (isNewLogin) conn.isInit = true
+  const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
+  if (code && code !== DisconnectReason.loggedOut && conn?.ws.readyState !== CONNECTING) {
+    console.log(await global.reloadHandler(true).catch(console.error))
+    global.timestamp.connect = new Date
+  }
+  if (global.db.data == null) loadDatabase()
+}
 
-${usedPrefix}mates *<noob / easy / medium / hard / extreme /impossible /impossible2>*_
-${usedPrefix}ppt *<papel / tijera /piedra>*_
-${usedPrefix}prostituto *<nombre / @tag>*_
-${usedPrefix}prostituta *<nombre / @tag>*_
-${usedPrefix}gay2 *<nombre / @tag>*_
-${usedPrefix}lesbiana *<nombre / @tag>*_
-${usedPrefix}pajero *<nombre / @tag>*_
-${usedPrefix}pajera *<nombre / @tag>*_
-${usedPrefix}puto *<nombre / @tag>*_
-${usedPrefix}puta *<nombre / @tag>*_
-${usedPrefix}manco *<nombre / @tag>*_
-${usedPrefix}manca *<nombre / @tag>*_
-${usedPrefix}rata *<nombre / @tag>*_
-${usedPrefix}love *<nombre / @tag>*_
-${usedPrefix}doxear *<nombre / @tag>*_
-${usedPrefix}pregunta *<texto>*_
-${usedPrefix}slot *<apuesta>*_
-${usedPrefix}simi *<texto>*_
-${usedPrefix}topgays_
-${usedPrefix}topotakus_
-${usedPrefix}formarpareja_
-${usedPrefix}verdad_
-${usedPrefix}reto_
 
-*<𝔸ℂ𝕋𝕀𝕍𝔸ℝ 𝕆 𝔻𝔼𝕊𝔸ℂ𝕋𝕀𝕍𝔸ℝ/>*
+process.on('uncaughtException', console.error)
+// let strQuot = /(["'])(?:(?=(\\?))\2.)*?\1/
 
-${usedPrefix}enable *welcome*_
-${usedPrefix}disable *welcome*_
-${usedPrefix}enable *modohorny*_
-${usedPrefix}disable *modohorny*_
-${usedPrefix}enable *antilink*_
-${usedPrefix}disable *antilink*_
-${usedPrefix}enable *antilink2*_
-${usedPrefix}disable *antilink2*_
-${usedPrefix}enable *detect*_
-${usedPrefix}disable *detect*_
-${usedPrefix}enable *audios*_
-${usedPrefix}disable *audios*_
-${usedPrefix}enable *autosticker*_
-${usedPrefix}disable *autosticker*_
+let isInit = true;
+let handler = await import('./handler.js')
+global.reloadHandler = async function (restatConn) {
+  try {
+    const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
+    if (Object.keys(Handler || {}).length) handler = Handler
+  } catch (e) {
+    console.error(e)
+  }
+  if (restatConn) {
+    const oldChats = global.conn.chats
+    try { global.conn.ws.close() } catch { }
+    conn.ev.removeAllListeners()
+    global.conn = makeWASocket(connectionOptions, { chats: oldChats })
+    isInit = true
+  }
+  if (!isInit) {
+    conn.ev.off('messages.upsert', conn.handler)
+    conn.ev.off('group-participants.update', conn.participantsUpdate)
+    conn.ev.off('groups.update', conn.groupsUpdate)
+    conn.ev.off('message.delete', conn.onDelete)
+    conn.ev.off('connection.update', conn.connectionUpdate)
+    conn.ev.off('creds.update', conn.credsUpdate)
+  }
+  
+  conn.welcome = '*╔══════════════*\n*╟❧ @subject*\n*╠══════════════*\n*╟❧ @user*\n*╟❧ 𝙱𝙸𝙴𝙽𝚅𝙴𝙽𝙸𝙳𝙾/𝙰* \n*║*\n*╟❧ 𝙳𝙴𝚂𝙲𝚁𝙸𝙿𝙲𝙸𝙾𝙽 𝙳𝙴𝙻 𝙶𝚁𝚄𝙿𝙾:*\n*╟❧* @desc\n*║*\n*╟❧ 𝙳𝙸𝚂𝙵𝚁𝚄𝚃𝙰 𝚃𝚄 𝙴𝚂𝚃𝙰𝙳𝙸𝙰!!*\n*╚══════════════*'
+  conn.bye = '*╔══════════════*\n*╟❧ @user*\n*╟❧ 𝙷𝙰𝚂𝚃𝙰 𝙿𝚁𝙾𝙽𝚃𝙾 👋🏻* \n*╚══════════════*'
+  conn.spromote = '*@user 𝚂𝙴 𝚂𝚄𝙼𝙰 𝙰𝙻 𝙶𝚁𝚄𝙿𝙾 𝙳𝙴 𝙰𝙳𝙼𝙸𝙽𝚂!!*'
+  conn.sdemote = '*@user 𝙰𝙱𝙰𝙽𝙳𝙾𝙽𝙰 𝙴𝙻 𝙶𝚁𝚄𝙿𝙾 𝙳𝙴 𝙰𝙳𝙼𝙸𝙽𝚂 !!*'
+  conn.sDesc = '*𝚂𝙴 𝙷𝙰 𝙼𝙾𝙳𝙸𝙵𝙸𝙲𝙰𝙳𝙾 𝙻𝙰 𝙳𝙴𝚂𝙲𝚁𝙸𝙿𝙲𝙸𝙾𝙽 𝙳𝙴𝙻 𝙶𝚁𝚄𝙿𝙾*\n\n*𝙽𝚄𝙴𝚅𝙰 𝙳𝙴𝚂𝙲𝚁𝙸𝙿𝙲𝙸𝙾𝙽:* @desc'
+  conn.sSubject = '*𝚂𝙴 𝙷𝙰 𝙼𝙾𝙳𝙸𝙵𝙸𝙲𝙰𝙳𝙾 𝙴𝙻 𝙽𝙾𝙼𝙱𝚁𝙴 𝙳𝙴𝙻 𝙶𝚁𝚄𝙿𝙾*\n*𝙽𝚄𝙴𝚅𝙾 𝙽𝙾𝙼𝙱𝚁𝙴:* @subject'
+  conn.sIcon = '*𝚂𝙴 𝙷𝙰 𝙲𝙰𝙼𝙱𝙸𝙰𝙳𝙾 𝙻𝙰 𝙵𝙾𝚃𝙾 𝙳𝙴𝙻 𝙶𝚁𝚄𝙿𝙾!!*'
+  conn.sRevoke = '*𝚂𝙴 𝙷𝙰 𝙰𝙲𝚃𝚄𝙰𝙻𝙸𝚉𝙰𝙳𝙾 𝙴𝙻 𝙻𝙸𝙽𝙺 𝙳𝙴𝙻 𝙶𝚁𝚄𝙿𝙾!!*\n*𝙻𝙸𝙽𝙺 𝙽𝚄𝙴𝚅𝙾:* @revoke'
+  conn.handler = handler.handler.bind(global.conn)
+  conn.participantsUpdate = handler.participantsUpdate.bind(global.conn)
+  conn.groupsUpdate = handler.groupsUpdate.bind(global.conn)
+  conn.onDelete = handler.deleteUpdate.bind(global.conn)
+  conn.connectionUpdate = connectionUpdate.bind(global.conn)
+  conn.credsUpdate = saveState.bind(global.conn, true)
 
-*<ℝ𝔼ℙ𝕆ℝ𝕋𝔼𝕊 𝔻𝔼 𝔽𝔸𝕃𝕃𝕆𝕊/>*
+  conn.ev.on('messages.upsert', conn.handler)
+  conn.ev.on('group-participants.update', conn.participantsUpdate)
+  conn.ev.on('groups.update', conn.groupsUpdate)
+  conn.ev.on('message.delete', conn.onDelete)
+  conn.ev.on('connection.update', conn.connectionUpdate)
+  conn.ev.on('creds.update', conn.credsUpdate)
+  isInit = false
+  return true
+}
 
-${usedPrefix}reporte *<texto>*_
+const pluginFolder = global.__dirname(join(__dirname, './plugins/index'))
+const pluginFilter = filename => /\.js$/.test(filename)
+global.plugins = {}
+async function filesInit() {
+  for (let filename of readdirSync(pluginFolder).filter(pluginFilter)) {
+    try {
+      let file = global.__filename(join(pluginFolder, filename))
+      const module = await import(file)
+      global.plugins[filename] = module.default || module
+    } catch (e) {
+      conn.logger.error(e)
+      delete global.plugins[filename]
+    }
+  }
+}
+filesInit().then(_ => console.log(Object.keys(global.plugins))).catch(console.error)
 
-*<𝔻𝔼𝕊ℂ𝔸ℝ𝔾𝔸𝕊/>*
+global.reload = async (_ev, filename) => {
+  if (pluginFilter(filename)) {
+    let dir = global.__filename(join(pluginFolder, filename), true)
+    if (filename in global.plugins) {
+      if (existsSync(dir)) conn.logger.info(` updated plugin - '${filename}'`)
+      else {
+        conn.logger.warn(`deleted plugin - '${filename}'`)
+        return delete global.plugins[filename]
+      }
+    } else conn.logger.info(`new plugin - '${filename}'`)
+    let err = syntaxerror(readFileSync(dir), filename, {
+      sourceType: 'module',
+      allowAwaitOutsideFunction: true
+    })
+    if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
+    else try {
+      const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`))
+      global.plugins[filename] = module.default || module
+    } catch (e) {
+      conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
+    } finally {
+      global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
+    }
+  }
+}
+Object.freeze(global.reload)
+watch(pluginFolder, global.reload)
+await global.reloadHandler()
 
-${usedPrefix}facebook *<enlace / link / url>*_
-${usedPrefix}instagram *<enlace / link / url>*_
-${usedPrefix}mediafire *<enlace / link / url>*_
-${usedPrefix}instagram *<enlace / link / url>*_
-${usedPrefix}gitclone *<enlace / link / url>*_
-${usedPrefix}tiktok *<enlace / link / url>*_
-${usedPrefix}ytmp3 *<enlace / link / url>*_
-${usedPrefix}ytmp4 *<enlace / link / url>*_
-${usedPrefix}play.1 *<texto / enlace / link / url>*_
-${usedPrefix}play.2 *<texto / enlace / link / url>*_
-${usedPrefix}play *<texto>*_
-${usedPrefix}spotify *<texto>*_
-${usedPrefix}imagen *<texto>*_
-${usedPrefix}pinteret *<texto>*_
-${usedPrefix}wallpaper *<texto>*_
-${usedPrefix}wallpaper2 *<texto>*_
-${usedPrefix}pptiktok *<nombre de usuario>*_
-${usedPrefix}igstalk *<nombre de usuario>*_
-${usedPrefix}tiktokstalk *<nombre de usuario>*_
+// Quick Test
+async function _quickTest() {
+  let test = await Promise.all([
+    spawn('ffmpeg'),
+    spawn('ffprobe'),
+    spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-']),
+    spawn('convert'),
+    spawn('magick'),
+    spawn('gm'),
+    spawn('find', ['--version'])
+  ].map(p => {
+    return Promise.race([
+      new Promise(resolve => {
+        p.on('close', code => {
+          resolve(code !== 127)
+        })
+      }),
+      new Promise(resolve => {
+        p.on('error', _ => resolve(false))
+      })
+    ])
+  }))
+  let [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test
+  console.log(test)
+  let s = global.support = {
+    ffmpeg,
+    ffprobe,
+    ffmpegWebp,
+    convert,
+    magick,
+    gm,
+    find
+  }
+  // require('./lib/sticker').support = s
+  Object.freeze(global.support)
 
-*<𝔾ℝ𝕌ℙ𝕆𝕊/>* 
+  if (!s.ffmpeg) conn.logger.warn('Please install ffmpeg for sending videos (pkg install ffmpeg)')
+  if (s.ffmpeg && !s.ffmpegWebp) conn.logger.warn('Stickers may not animated without libwebp on ffmpeg (--enable-ibwebp while compiling ffmpeg)')
+  if (!s.convert && !s.magick && !s.gm) conn.logger.warn('Stickers may not work without imagemagick if libwebp on ffmpeg doesnt isntalled (pkg install imagemagick)')
+}
 
-${usedPrefix}add *<numero>*_
-${usedPrefix}kick *<@tag>*_
-${usedPrefix}grupo *<abrir / cerrar>*_
-${usedPrefix}promote *<@tag>*_
-${usedPrefix}demote *<@tag>*_
-${usedPrefix}banchat_
-${usedPrefix}unbanchat_
-admins *<texto>*_ (𝑢𝑠𝑜 𝑠𝑖𝑛 𝑝𝑟𝑒𝑓𝑖𝑗𝑜)
-${usedPrefix}demote *<@tag>*_
-${usedPrefix}infogroup_
-${usedPrefix}link_
-${usedPrefix}setname *<texto>*_
-${usedPrefix}setdesc *<texto>*_
-${usedPrefix}invocar *<texto>*_
-${usedPrefix}setwelcome *<texto>*_
-${usedPrefix}setbye *<texto>*_
-${usedPrefix}hidetag *<texto>*_
-${usedPrefix}simular *<welcome / bye / promote / demote>*_
-
-*<ℂ𝕆ℕ𝕍𝔼ℝ𝕋𝕀𝔻𝕆ℝ𝔼𝕊/>*
-
-${usedPrefix}toimg *<responde a un sticker>*_
-${usedPrefix}tomp3 *<responde a un video / nota de voz>*_
-${usedPrefix}toptt *<responde a un video / audio>*_
-${usedPrefix}tovideo *<responde a un audio>*_
-${usedPrefix}tourl *<responde a un video / imagen / audio>*_
-${usedPrefix}tts es *<texto>*_
-
-*<𝔼𝔽𝔼ℂ𝕋𝕆𝕊 𝕐 𝕃𝕆𝔾𝕆𝕊/>*
-
-${usedPrefix}logos *<efecto> <texto>*_
-${usedPrefix}simpcard *<@tag>*_
-${usedPrefix}hornycard *<@tag>*_
-${usedPrefix}lolice *<@tag>*_
-${usedPrefix}ytcomment *<texto>*_
-${usedPrefix}itssostupid_
-${usedPrefix}pixelar_
-${usedPrefix}blur_
-
-*<ℝ𝔸ℕ𝔻𝕆𝕄/>*
-
-${usedPrefix}cristianoronaldo_
-${usedPrefix}messi_
-${usedPrefix}meme_
-${usedPrefix}itzy_
-${usedPrefix}blackpink_
-${usedPrefix}kpop *<blackpink / exo / bts>*_
-${usedPrefix}lolivid_
-${usedPrefix}loli_
-${usedPrefix}navidad_
-${usedPrefix}ppcouple_
-${usedPrefix}neko_
-${usedPrefix}waifu_
-${usedPrefix}akira_
-${usedPrefix}akiyama_
-${usedPrefix}anna_
-${usedPrefix}asuna_
-${usedPrefix}ayuzawa_
-${usedPrefix}boruto_
-${usedPrefix}chiho_
-${usedPrefix}chitoge_
-${usedPrefix}deidara_
-${usedPrefix}erza_
-${usedPrefix}elaina_
-${usedPrefix}eba_
-${usedPrefix}emilia_
-${usedPrefix}hestia_
-${usedPrefix}hinata_
-${usedPrefix}inori_
-${usedPrefix}isuzu_
-${usedPrefix}itachi_
-${usedPrefix}itori_
-${usedPrefix}kaga_
-${usedPrefix}kagura_
-${usedPrefix}kaori_
-${usedPrefix}keneki_
-${usedPrefix}kotori_
-${usedPrefix}kurumi_
-${usedPrefix}madara_
-${usedPrefix}mikasa_
-${usedPrefix}miku_
-${usedPrefix}minato_
-${usedPrefix}naruto_
-${usedPrefix}nezuko_
-${usedPrefix}sagiri_
-${usedPrefix}sasuke_
-${usedPrefix}sakura_
-${usedPrefix}cosplay_
-
-*<ℂ𝕆𝕄𝔸ℕ𝔻𝕆𝕊 +𝟙𝟠/>*
-
-${usedPrefix}pack_
-${usedPrefix}pack2_
-${usedPrefix}pack3_
-${usedPrefix}videoxxx_
-${usedPrefix}tetas_
-${usedPrefix}booty_
-${usedPrefix}ecchi_
-${usedPrefix}furro_
-${usedPrefix}imagenlesbians_
-${usedPrefix}panties_
-${usedPrefix}pene_
-${usedPrefix}porno_
-${usedPrefix}porno2_
-${usedPrefix}randomxxx_
-${usedPrefix}pechos_
-${usedPrefix}yaoi_
-${usedPrefix}yaoi2_
-${usedPrefix}yuri_
-${usedPrefix}yuri2_
-${usedPrefix}trapito_
-${usedPrefix}hentai_
-${usedPrefix}pies_
-${usedPrefix}nsfwloli_
-${usedPrefix}nsfworgy_
-${usedPrefix}nsfwfoot_
-${usedPrefix}nsfwass_
-${usedPrefix}nsfwbdsm_
-${usedPrefix}nsfwcum_
-${usedPrefix}nsfwero_
-${usedPrefix}nsfwfemdom_
-${usedPrefix}nsfwglass_
-
-*<𝔼𝔽𝔼ℂ𝕋𝕆𝕊 𝔻𝔼 𝔸𝕌𝔻𝕀𝕆𝕊/>*
-*- 𝚁𝙴𝚂𝙿𝙾𝙽𝙳𝙴 𝙰 𝚄𝙽 𝙰𝚄𝙳𝙸𝙾 𝙾 𝙽𝙾𝚃𝙰 𝙳𝙴 𝚅𝙾𝚉*
-
-${usedPrefix}bass_
-${usedPrefix}blown_
-${usedPrefix}deep_
-${usedPrefix}earrape_
-${usedPrefix}fast_
-${usedPrefix}fat_
-${usedPrefix}nightcore_
-${usedPrefix}reverse_
-${usedPrefix}robot_
-${usedPrefix}slow_
-${usedPrefix}smooth_
-${usedPrefix}tupai_
-
-*<ℂℍ𝔸𝕋 𝔸ℕ𝕆ℕ𝕀𝕄𝕆/>*
-
-${usedPrefix}start_
-${usedPrefix}next_
-${usedPrefix}leave_
-
-*<𝔹𝕌𝕊ℂ𝔸𝔻𝕆ℝ𝔼𝕊/>*
-
-${usedPrefix}animeinfo *<texto>*_
-${usedPrefix}google *<texto>*_
-${usedPrefix}letra *<texto>*_
-${usedPrefix}wikipedia *<texto>*_
-${usedPrefix}ytsearch *<texto>*_
-
-*<𝔸𝕌𝔻𝕀𝕆𝕊/>* 
-*- 𝙴𝚂𝙲𝚁𝙸𝙱𝙴 𝙻𝙰𝚂 𝚂𝙸𝙶𝚄𝙸𝙴𝙽𝚃𝙴𝚂 𝙿𝙰𝙻𝙰𝙱𝚁𝙰𝚂 𝙾 𝙵𝚁𝙰𝚂𝙴𝚂 𝚂𝙸𝙽 𝙽𝙸𝙽𝙶𝚄𝙽 𝙿𝚁𝙴𝙵𝙸𝙹𝙾 (#, /, *, .)* 
-_(𝑢𝑠𝑜 𝑠𝑖𝑛 𝑝𝑟𝑒𝑓𝑖𝑗𝑜)_
-
-Quien es tu sempai botsito 7w7_
-Te diagnostico con gay_
-A nadie le importa_
-Fiesta del admin_
-Fiesta del administrador_ 
-Vivan los novios_
-Feliz cumpleaños_
-Noche de paz_
-Buenos dias_
-Buenos tardes_
-Buenos noches_
-Audio hentai_
-Chica lgante_
-Feliz navidad_
-Vete a la vrg_
-Pasa pack Bot_
-Atencion grupo_
-Marica quien_
-Murio el grupo_
-Oh me vengo_
-Viernes_
-Baneado_
-Sexo_
-Hola_
-Un pato_
-Nyanpasu_
-Te amo_
-Yamete_
-Bañate_
-Es puto_
-La biblia_
-Onichan_
-Mierda de Bot_
-Siuuu_
-Rawr_
-UwU_
-:c_
-a_
-
-*<ℍ𝔼ℝℝ𝔸𝕄𝕀𝔼ℕ𝕋𝔸𝕊/>*
-
-${usedPrefix}afk *<motivo>*_
-${usedPrefix}acortar *<enlace / link / url>*_
-${usedPrefix}calc *<operacion math>*_
-${usedPrefix}del *<respondre a mensaje del Bot>*_
-${usedPrefix}qrcode *<texto>*_
-${usedPrefix}readmore *<texto1| texto2>*_
-${usedPrefix}spamwa *<numero|texto|cantidad>*_
-${usedPrefix}styletext *<texto>*_
-${usedPrefix}traducir *<texto>*_
-
-*<ℝℙ𝔾 - 𝕃𝕀𝕄𝕀𝕋𝔼𝕊 - 𝔼ℂ𝕆ℕ𝕆𝕄𝕀𝔸/>*
-
-${usedPrefix}balance_
-${usedPrefix}claim_
-${usedPrefix}top_
-${usedPrefix}levelup_
-${usedPrefix}myns_
-${usedPrefix}perfil_
-${usedPrefix}work_
-${usedPrefix}minar_
-${usedPrefix}buy_
-${usedPrefix}buyall_
-${usedPrefix}transfer *<tipo> <cantidad> <@tag>*_
-${usedPrefix}verificar_
-${usedPrefix}unreg *<numero de serie>*_
-
-*<𝕊𝕋𝕀ℂ𝕂𝔼ℝ𝕊/>*
-
-${usedPrefix}emojimix *<emoji 1>&<emoji 2>*_
-${usedPrefix}attp *<texto>*_
-${usedPrefix}ttp *<texto>*_
-${usedPrefix}pat *<@tag>_
-${usedPrefix}slap *<@tag>_
-${usedPrefix}kiss *<@tag>*_
-${usedPrefix}dado_
-${usedPrefix}wm *<packname> <author>*_
-${usedPrefix}stickermarker *<efecto> <responder a imagen>*_
-${usedPrefix}stickerfilter *<efecto> <responder a imagen>*_
-
-*<𝕆𝕎ℕ𝔼ℝ 𝕐 𝕄𝕆𝔻𝔼ℝ𝔸𝔻𝕆ℝ𝔼𝕊/>*
-
-${usedPrefix}cajafuerte_
-${usedPrefix}enable *restrict*_
-${usedPrefix}disable *restrict*_
-${usedPrefix}enable *autoread*_
-${usedPrefix}disable *autoread*_
-${usedPrefix}enable *public*_
-${usedPrefix}disable *public*_
-${usedPrefix}enable *pconly*_
-${usedPrefix}disable *pconly*_
-${usedPrefix}enable *gconly*_
-${usedPrefix}disable *gconly*_
-${usedPrefix}banchat2_
-${usedPrefix}unbanchat2_
-${usedPrefix}banuser *<@tag>*_
-${usedPrefix}unbanuser *<@tag>*_
-${usedPrefix}banuser *<@tag>*_
-${usedPrefix}bc *<texto>*_
-${usedPrefix}bcchats *<texto>*_
-${usedPrefix}bcgc *<texto>*_
-${usedPrefix}cleartpm_
-${usedPrefix}restart_
-${usedPrefix}update_
-${usedPrefix}addprem *<@tag>*_
-${usedPrefix}delprem *<@tag>*_
-${usedPrefix}listprem_
-${usedPrefix}añadirdiamantes *<@tag> <cantidad>*_
-${usedPrefix}añadirxp *<@tag> <cantidad>*_
-`.trim()
-conn.sendHydrated(m.chat, str, wm, pp, 'https://github.com/JEIRONY', '𝙶𝙸𝚃𝙷𝚄𝙱', null, null, [
-['💖 𝘿𝙤𝙣𝙖𝙧 | 𝘿𝙤𝙣𝙖𝙩𝙚', '.donar'],
-['💗 𝙈𝙚𝙣𝙪 𝘼𝙫𝙚𝙣𝙩𝙪𝙧𝙖 | 𝙍𝙋𝙂 💗', null],
-['💝 𝙈𝙚𝙣𝙪 𝘼𝙪𝙙𝙞𝙤𝙨 💝', '.audios']
-
-], m,)
-await conn.sendFile(m.chat, vn, 'menu.mp3', null, m, true, {
-type: 'audioMessage', 
-ptt: true})
-} catch (e) {
-conn.reply(m.chat, '*[❗𝐈𝐍𝐅𝐎❗] 𝙴𝙻 𝙼𝙴𝙽𝚄 𝚃𝙸𝙴𝙽𝙴 𝚄𝙽 𝙴𝚁𝚁𝙾𝚁 𝚈 𝙽𝙾 𝙵𝚄𝙴 𝙿𝙾𝚂𝙸𝙱𝙻𝙴 𝙴𝙽𝚅𝙸𝙰𝚁𝙻𝙾, 𝚁𝙴𝙿𝙾𝚁𝚃𝙴𝙻𝙾 𝙰𝙻 𝙿𝚁𝙾𝙿𝙸𝙴𝚃𝙰𝚁𝙸𝙾 𝙳𝙴𝙻 𝙱𝙾𝚃*', m)
-throw e
-}}
-handler.help = ['menu', 'help', '?']
-handler.tags = ['main']
-handler.command = /^(menucompleto|allmenu|allm\?)$/i
-//handler.register = true
-handler.exp = 50
-handler.fail = null
-export default handler
-
-const more = String.fromCharCode(8206)
-const readMore = more.repeat(4001)
-function clockString(ms) {
-let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000)
-let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
-let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
-return [h, m, s].map(v => v.toString().padStart(2, 0)).join(':')}
+_quickTest()
+  .then(() => conn.logger.info('Quick Test Done'))
+  .catch(console.error)
