@@ -4,8 +4,8 @@ import { fileURLToPath } from 'url'
 
 //⊱ ━━━━━.⋅ Añada los numeros a ser Propietario/a | Add the numbers to be Owner ⋅.━━━━ ⊰
 global.owner = [
-  ['50578229009', 'Shinoa Bot', true],
-  ['50576796164'],
+  ['573152139466', 'JEIRONY', true],
+  [''],
  
 
 
@@ -13,7 +13,7 @@ global.owner = [
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ฅ^•ﻌ•^ฅ
 
 global.mods = [] 
-global.prems = ['50576796164'], 
+global.prems = [''], 
 
 global.APIs = { // API Prefix.
   
