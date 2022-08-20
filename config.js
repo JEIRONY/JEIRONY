@@ -71,8 +71,8 @@ global.APIKeys = { // APIKey Here
 
 //⊱ ━━━━━.⋅ Sticker WM ⋅.━━━━ ⊰
 
-global.packname = '𝗦𝗛𝗜𝗡𝗢𝗔𝜷𝝄𝞽'
-global.author = '𝗝𝗼𝘀𝗲𝗭𝘇𝘇'
+global.packname = 'JEIRONY'
+global.author = 'JEIRONY'
 
 //━━━━━━━━━━━━━━━━━━━━ ฅ^•ﻌ•^ฅ
 
@@ -82,16 +82,13 @@ global.author = '𝗝𝗼𝘀𝗲𝗭𝘇𝘇'
 global.vs = '1.1.5'
 global.version = vs
 
-global.gt = '𝗦𝗛𝗜𝗡𝗢𝗔𝜷𝝄𝞽'
+global.gt = 'JEIRONY'
 global.gatabot = gt
 
-global.yt = 'https://youtube.com/channel/UCO3zMzHQ3n2C0ypN2Y5aeeg'
+global.yt = 'https://www.youtube.com/channel/UCCrEOFYcEqK28CJq7EwB6rg'
 global.youtube = yt
 
-global.ig = 'https://www.instagram.com/josedev2nc'
-global.gatadiosig = ig
-
-global.md = 'https://github.com/Jose21NC/ShinoaBot'
+global.md = 'https://github.com/JEIRONY'
 global.gatabot = md
 
 global.nn = 'https://chat.whatsapp.com/J5O2VCn3X6WIeLVNrqDgPU'
@@ -100,7 +97,7 @@ global.nngrupo = nn
 global.nnn = 'https://chat.whatsapp.com/J5O2VCn3X6WIeLVNrqDgPU'
 global.nnngrupo = nnn
 
-global.paypal = 'https://paypal.me/JObregonalonzo'
+global.paypal = 'https://paypal.me/servidoresjava'
 global.donar = paypal
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ฅ^•ﻌ•^ฅ
@@ -134,8 +131,8 @@ global.exito = eg
 
 //⊱ ━━━━━.⋅ Información | Information ⋅.━━━━ ⊰
 
-global.wm = '𝗦𝗛𝗜𝗡𝗢𝗔𝜷𝛔𝞽|꧁⇱㋝ℐⲞᶊℇʛⲟ⃢ɗ ㊋⇲꧂'
-global.igfg = '𝗦𝗛𝗜𝗡𝗢𝗔𝜷𝛔𝞽'
+global.wm = 'JEIRONY|꧁UNO꧂'
+global.igfg = 'JEIRONY'
 global.wait = '*⌛ _Cargando..._ ▬▬▬▭*'
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ฅ^•ﻌ•^ฅ
