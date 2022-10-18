@@ -3,6 +3,11 @@
 ███▄─▄█▄─▄▄─█▄─▄█▄─▄▄▀█─▄▄─█▄─▀█▄─▄█▄─█─▄███▀▀▀▀▀████▄─▄─▀█─▄▄─█─▄─▄─█
 █─▄█─███─▄█▀██─███─▄─▄█─██─██─█▄▀─███▄─▄██████████████─▄─▀█─██─███─███
 ▀▄▄▄▀▀▀▄▄▄▄▄▀▄▄▄▀▄▄▀▄▄▀▄▄▄▄▀▄▄▄▀▀▄▄▀▀▄▄▄▀▀▀▀▀▀▀▀▀▀▀▀▀▄▄▄▄▀▀▄▄▄▄▀▀▄▄▄▀▀
+
+<p align="center"> 
+<img src="https://readme-typing-svg.herokuapp.com/?font=mono&size=15&duration=4000&color=FF1E1E&center=falso&vCenter=falso&lines=JEIRONY++%F0%9F%92%80;Gracias+por+visitar+este+repositorio.;Te+agradeceria+si+me+regalas+una+estrellita."
+ height="90px"
+</p>
 ### `Si necesitas ayuda mandame mensaje`
    ༒☬༒ ᴄᴏɴᴛᴀᴄᴛᴀᴍᴇ  ༒☬༒
 
@@ -11,7 +16,7 @@
 ### `Unete a los grupos oficales para conocer novedades del Bot`
  ༒☬༒ ᴍɪꜱ ɢʀᴜᴘᴏꜱ ᴅᴇ ᴀʏᴜᴅᴀ  ༒☬༒
   
-[![Grupo de WhatsApp](https://img.shields.io/badge/WhatsApp%20Group-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://chat.whatsapp.com/El6hMgOd2SJ3v4LHXjON0l)
+[![Grupo de WhatsApp](https://img.shields.io/badge/WhatsApp%20Group-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://chat.whatsapp.com/El6hMgOd2SJ3v4LHXjON0l)    https://readme-typing-svg.herokuapp.com/?font=Palatino&size=20&duration=4000&color=00F5FF&center=falso&vCenter=falso&lines=SOLO+SI+NECESITAS+AYUDA.
 
 ### `CANAL DONDE SUBIRE CONTENIDO DE BOTS`
  
