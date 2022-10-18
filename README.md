@@ -1,9 +1,9 @@
-#` 
+#
 ██████████████████████████████████████████████████████████████████████
 ███▄─▄█▄─▄▄─█▄─▄█▄─▄▄▀█─▄▄─█▄─▀█▄─▄█▄─█─▄███▀▀▀▀▀████▄─▄─▀█─▄▄─█─▄─▄─█
 █─▄█─███─▄█▀██─███─▄─▄█─██─██─█▄▀─███▄─▄██████████████─▄─▀█─██─███─███
 ▀▄▄▄▀▀▀▄▄▄▄▄▀▄▄▄▀▄▄▀▄▄▀▄▄▄▄▀▄▄▄▀▀▄▄▀▀▄▄▄▀▀▀▀▀▀▀▀▀▀▀▀▀▄▄▄▄▀▀▄▄▄▄▀▀▄▄▄▀▀
-`
+
 <p align="center"> 
 <img src="https://readme-typing-svg.herokuapp.com/?font=mono&size=15&duration=4000&color=FF1E1E&center=falso&vCenter=falso&lines=JEIRONY++%F0%9F%92%80;Gracias+por+visitar+este+repositorio.;Te+agradeceria+si+me+regalas+una+estrellita."
  height="90px"
