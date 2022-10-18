@@ -35,7 +35,7 @@
 
 
 ## 
-![JEIRONY](https://i.imgur.com/KVqY6z3.jpg)
+<img height="30"![JEIRONY](https://i.imgur.com/KVqY6z3.jpg)>
 ```bash
 THE DARK KING ___ By JEIRONY
 ```
